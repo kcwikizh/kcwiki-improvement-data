@@ -5,10 +5,11 @@ name: kcwiki-improvement-data-update
 
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   schedule:
     # * is a special character in YAML so you have to quote this string
     - cron: '0 0 * * 1,5'
+  workflow_dispatch:
 
 jobs:
   build:
