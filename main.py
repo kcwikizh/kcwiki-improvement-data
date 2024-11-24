@@ -41,6 +41,7 @@ def get_equip_detail(equip_id):
 
     if '改修不可' in str(equip_detail_soup):  # 不需要处理
         ImprovementCache.set_cache(equip_id, {})
+        print(f'Equip {equip_id} has not improvement data.')
         return
 
     equip_name_obj = equip_detail_soup.select_one('div.name')
@@ -76,6 +77,7 @@ def get_equip_detail(equip_id):
             'div.detail-row div.resource-table:not([class~="consume-table"])').select('table tr')
     except AttributeError:  # 走到这里说明之前的“改修不可”没拦截到，实际上无法改修
         ImprovementCache.set_cache(equip_id, {})
+        print(f'Equip {equip_id} has not improvement data, skip.')
         return
 
     # 0~5改修的资材和装备消耗

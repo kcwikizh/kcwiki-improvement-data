@@ -51,7 +51,7 @@ jobs:
       run: |
         mkdir output
         cp improve_data.json output/improve_data.json
-        echo bot.kcwiki.moe > output/CNAME
+#        echo bot.kcwiki.moe > output/CNAME
     
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
