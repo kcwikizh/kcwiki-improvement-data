@@ -304,7 +304,8 @@ def get_equip_detail(equip_id):
                          improve_upgrade_item_cost_num)
 
         equip_info['improvement'] = improve_info
-        print(equip_info)
+        # print(equip_info)
+        print(f'Get equip improvement info success: {equip_id}')
         ImprovementCache.set_cache(equip_id, equip_info)
 
 
