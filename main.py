@@ -207,10 +207,9 @@ def get_equip_detail(equip_id):
         else:
             supporter_list.append((0, weekday_enable))
 
-    # 开始组装改修信息
+    # # # # # 开始组装改修信息 # # # # #
     if len(improve_upgrade_target_equip) == 0:  # 如果没有装备可以更新
         improve_upgrade_target_equip.append((0, '', 0))
-
     for i in range(len(improve_upgrade_target_equip)):
         target_equip = improve_upgrade_target_equip[i]
 
@@ -222,20 +221,24 @@ def get_equip_detail(equip_id):
         improve_info['upgrade']['icon'] = ItemDataHelper.get_icon_id(target_equip[0])  # TODO: 暂时没办法拿到
 
         # 秘书舰信息
-        req_dict = {}  # {weekday_enable: req}
+        ship_req_dict = {}  # 所有的秘书舰信息 {weekday_hash: req}
+        ship_weekday_index = {}  # 船ID到weekday_hash的映射 {ship_id: weekday_hash}
         for support_ship_id, weekday_enable in supporter_list:
-            weekday_hash = sum([1 << i for i in range(len(weekday_enable)) if weekday_enable[i]])
-            if weekday_hash in req_dict:
-                req_dict[weekday_hash]['secretary'].append(ShipInfoCache.get_name(support_ship_id))
-                req_dict[weekday_hash]['secretaryIds'].append(support_ship_id)
+            weekday_hash = get_weekday_hash(weekday_enable)
+            ship_weekday_index[support_ship_id] = weekday_hash
+
+            if weekday_hash in ship_req_dict:
+                ship_req_dict[weekday_hash]['secretary'].append(ShipInfoCache.get_name(support_ship_id))
+                ship_req_dict[weekday_hash]['secretaryIds'].append(support_ship_id)
                 continue
 
-            req_dict[weekday_hash] = {
+            ship_req_dict[weekday_hash] = {
                 "day": weekday_enable,
                 "secretary": [ShipInfoCache.get_name(support_ship_id)],
                 "secretaryIds": [support_ship_id],
             }
-        improve_info['req'] = list(req_dict.values())
+
+        improve_info['req'] = list(ship_req_dict.values())
 
         # 资源需求信息
         improve_info['consume'] = {}
@@ -266,7 +269,7 @@ def get_equip_detail(equip_id):
             }
         ]
 
-        if len(improve_upgrade_cost) > 0:
+        if len(improve_upgrade_cost) > 0:  # 处理装备更新时的cost信息(如有)
             improve_upgrade_dev_cost, improve_upgrade_dev_cost_sure, improve_upgrade_screw_cost, improve_upgrade_screw_cost_sure, improve_upgrade_equip_cost_id, improve_upgrade_equip_cost_name, improve_upgrade_equip_cost_num, upgrade_secretary = \
                 improve_upgrade_cost[i]
 
@@ -283,6 +286,27 @@ def get_equip_detail(equip_id):
                         "count": improve_upgrade_equip_cost_num,
                     }
                 })
+
+            if upgrade_secretary:  # 如果该装备更新有特殊秘书舰时，做二次处理
+                upgrade_secretary_dict = {}  # {weekday_hash: req}
+                for support_ship_name in upgrade_secretary:
+                    support_ship_id = ShipInfoCache.get_id(support_ship_name, -1)
+                    weekday_hash = ship_weekday_index.get(support_ship_id, None)
+                    if not weekday_hash or weekday_hash not in ship_req_dict:
+                        continue
+
+                    if weekday_hash in upgrade_secretary_dict:
+                        upgrade_secretary_dict[weekday_hash]['secretary'].append(support_ship_name)
+                        upgrade_secretary_dict[weekday_hash]['secretaryIds'].append(support_ship_id)
+                        continue
+
+                    upgrade_secretary_dict[weekday_hash] = {
+                        "day": ship_req_dict[weekday_hash]['day'],
+                        "secretary": [support_ship_name],
+                        "secretaryIds": [support_ship_id],
+                    }
+
+                improve_info['req'] = list(upgrade_secretary_dict.values())
 
         if len(improve_low_item_cost_id) > 0:
             improve_info['consume']['material'][0]['useitem'] = []
@@ -307,8 +331,13 @@ def get_equip_detail(equip_id):
 
         equip_info['improvement'].append(improve_info)
         # print(equip_info)
-        print(f'Get equip improvement info success: {equip_id}')
-        ImprovementCache.set_cache(equip_id, equip_info)
+    print(f'Get equip improvement info success: {equip_id}')
+    ImprovementCache.set_cache(equip_id, equip_info)
+
+
+def get_weekday_hash(weekday_enable):
+    weekday_hash = sum([1 << i for i in range(len(weekday_enable)) if weekday_enable[i]])
+    return weekday_hash
 
 
 def fill_useitem(useitem_info, cost_id, cost_name, cost_num):
