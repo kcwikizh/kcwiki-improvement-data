@@ -1,0 +1,58 @@
+# This workflow will install Python dependencies, run tests and lint with a single version of Python
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+
+name: kcwiki-improvement-data-update
+
+on:
+  push:
+    branches: [ master ]
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: '0 0 * * 1,5'
+
+jobs:
+  build:
+    name: Generate Json
+    runs-on: ubuntu-latest
+#    env:
+#      KCKIT_REPO_URL: https://github.com/TeamFleet/KCKit.git
+#      KCKIT_REPO_BRANCH: master
+#      WCTF_DB_REPO_URL: https://github.com/TeamFleet/WhoCallsTheFleet-DB.git
+#      WCTF_DB_REPO_BRANCH: master
+
+    steps:
+    - name: Run actions/checkout@v4.1.1
+      uses: actions/checkout@v4.1.1
+    
+    - name: Set up Python 3 environment
+      uses: actions/setup-python@v5.0.0
+      with:
+        python-version: 3.10.13
+    
+    - name: Run actions/cache@v3.3.2
+      uses: actions/cache@v3.3.2
+      if: startsWith(runner.os, 'Linux')
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Before build
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Run build
+      run: |
+        python main.py
+        
+    - name: Before deploy
+      run: |
+        cp improve_data.json output/improve_data.json
+        echo bot.kcwiki.moe > output/CNAME
+    
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./output
