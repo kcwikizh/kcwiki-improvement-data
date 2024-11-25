@@ -22,16 +22,16 @@ jobs:
 #      WCTF_DB_REPO_BRANCH: master
 
     steps:
-    - name: Run actions/checkout@v4.1.1
-      uses: actions/checkout@v4.1.1
+    - name: Run actions/checkout@v4.2.2
+      uses: actions/checkout@v4.2.2
     
     - name: Set up Python 3 environment
-      uses: actions/setup-python@v5.0.0
+      uses: actions/setup-python@v5.3.0
       with:
         python-version: 3.10.13
     
-    - name: Run actions/cache@v3.3.2
-      uses: actions/cache@v3.3.2
+    - name: Run actions/cache@v4.1.2
+      uses: actions/cache@v4.1.2
       if: startsWith(runner.os, 'Linux')
       with:
         path: ~/.cache/pip
