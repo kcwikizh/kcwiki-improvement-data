@@ -51,6 +51,7 @@ jobs:
       run: |
         mkdir output
         cp improve_data.json output/improve_data.json
+        cp api_start2.json output/api_start2.json
 #        echo bot.kcwiki.moe > output/CNAME
     
     - name: Deploy

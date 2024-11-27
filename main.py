@@ -1,6 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
-from utils import ImprovementCache, ItemDataHelper, ShipInfoCache
+from utils import ImprovementCache, Start2DataHelper, ShipInfoCache
 
 REQUEST_WEBSITE = 'https://akashi-list.me/'
 
@@ -56,7 +56,7 @@ def get_equip_detail(equip_id):
                       .replace('Wiki WikiEn', '').strip())
     # 装备图标ID
     try:
-        equip_icon_id = ItemDataHelper.get_icon_id_by_typename(equip_typename, equip_id)
+        equip_icon_id = Start2DataHelper.get_slotitem_type_id_by_typename(equip_typename, equip_id)
     except KeyError:
         raise ValueError(f'TypeName not found: {equip_name} -> {equip_typename}')
 
@@ -218,7 +218,7 @@ def get_equip_detail(equip_id):
         improve_info['upgrade']['level'] = target_equip[2]
         improve_info['upgrade']['id'] = target_equip[0]
         improve_info['upgrade']['name'] = target_equip[1]
-        improve_info['upgrade']['icon'] = ItemDataHelper.get_icon_id(target_equip[0])  # TODO: 暂时没办法拿到
+        improve_info['upgrade']['icon'] = Start2DataHelper.get_slotitem_type_id(target_equip[0])  # TODO: 暂时没办法拿到
 
         # 秘书舰信息
         ship_req_dict = {}  # 所有的秘书舰信息 {weekday_hash: req}
@@ -228,13 +228,13 @@ def get_equip_detail(equip_id):
             ship_weekday_index[support_ship_id] = weekday_hash
 
             if weekday_hash in ship_req_dict:
-                ship_req_dict[weekday_hash]['secretary'].append(ShipInfoCache.get_name(support_ship_id))
+                ship_req_dict[weekday_hash]['secretary'].append(Start2DataHelper.get_ship_name_by_id(support_ship_id))
                 ship_req_dict[weekday_hash]['secretaryIds'].append(support_ship_id)
                 continue
 
             ship_req_dict[weekday_hash] = {
                 "day": weekday_enable,
-                "secretary": [ShipInfoCache.get_name(support_ship_id)],
+                "secretary": [Start2DataHelper.get_ship_name_by_id(support_ship_id)],
                 "secretaryIds": [support_ship_id],
             }
 
@@ -251,7 +251,7 @@ def get_equip_detail(equip_id):
                 "development": [improve_low_dev_cost, improve_low_dev_cost_sure],
                 "improvement": [improve_low_screw_cost, improve_low_screw_cost_sure],
                 "item": {
-                    "icon": ItemDataHelper.get_icon_id(improve_low_equip_cost_id),
+                    "icon": Start2DataHelper.get_slotitem_type_id(improve_low_equip_cost_id),
                     "name": improve_low_equip_cost_name,
                     "id": improve_low_equip_cost_id,
                     "count": improve_low_equip_cost_num,
@@ -261,7 +261,7 @@ def get_equip_detail(equip_id):
                 "development": [improve_high_dev_cost, improve_high_dev_cost_sure],
                 "improvement": [improve_high_screw_cost, improve_high_screw_cost_sure],
                 "item": {
-                    "icon": ItemDataHelper.get_icon_id(improve_high_equip_cost_id),
+                    "icon": Start2DataHelper.get_slotitem_type_id(improve_high_equip_cost_id),
                     "name": improve_high_equip_cost_name,
                     "id": improve_high_equip_cost_id,
                     "count": improve_high_equip_cost_num,
@@ -280,7 +280,7 @@ def get_equip_detail(equip_id):
                     "development": [improve_upgrade_dev_cost, improve_upgrade_dev_cost_sure],
                     "improvement": [improve_upgrade_screw_cost, improve_upgrade_screw_cost_sure],
                     "item": {
-                        "icon": ItemDataHelper.get_icon_id(improve_upgrade_equip_cost_id),
+                        "icon": Start2DataHelper.get_slotitem_type_id(improve_upgrade_equip_cost_id),
                         "name": improve_upgrade_equip_cost_name,
                         "id": improve_upgrade_equip_cost_id,
                         "count": improve_upgrade_equip_cost_num,
@@ -343,7 +343,7 @@ def get_weekday_hash(weekday_enable):
 def fill_useitem(useitem_info, cost_id, cost_name, cost_num):
     for a in range(len(cost_id)):
         useitem_info.append({
-            "icon": ItemDataHelper.get_icon_id(cost_id[a]),
+            "icon": Start2DataHelper.get_slotitem_type_id(cost_id[a]),
             "name": cost_name[a],
             "id": cost_id[a],
             "count": cost_num[a],
@@ -412,7 +412,7 @@ def get_improve_cost(equip_id, item_cost_id_list, item_cost_name_list, item_cost
                 # print('Subitem:', sub_item)
                 try:
                     if 'title' in sub_item:
-                        item_cost_id_list.append(ItemDataHelper.get_icon_id_by_typename(sub_item['title']))
+                        item_cost_id_list.append(Start2DataHelper.get_slotitem_type_id_by_typename(sub_item['title']))
                         item_cost_name_list.append(sub_item['title'])
                         item_cost_num_list.append(int(sub_item.get_text().replace(u'×', '').strip()))
 
@@ -452,3 +452,5 @@ if __name__ == '__main__':
     ImprovementCache.read_file()
     soup_obj = get_equip_tree()
     get_item_info(soup_obj)
+
+    Start2DataHelper.dump_start2_json()

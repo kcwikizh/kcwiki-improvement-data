@@ -41,50 +41,45 @@ def Printf(*args, color_str=''):
     print('\033[0m')
 
 
-class ItemDataHelper:
-    ITEM_DATA_URL = 'https://bot.kcwiki.moe/json/items.json'
+class Start2DataHelper:
+    START2_DATA_URL = 'https://api.kcwiki.moe/start2'
+    START2_FILENAME = './api_start2.json'
+    ICON_ID_INDEX = 2  # 装备类型所在的位置
 
-    EQUIP_ICON_ID = {  # 该列表可能更新不及时，请尽量避免使用icon字段
-        '小口径主砲': 1,
-        '中口径主砲': 2,
-        '大口径主砲': 3,
-        '艦上戦闘機': 6,
-        '艦上爆撃機': 7,
-        '艦上攻撃機': 8,
-        '艦上偵察機': 9,
-        '水上偵察機': 10,
-        '上陸用舟艇': 20,
-        '対潜哨戒機': 22,
-        '司令部施設': 34,
-        '熟練搭乗員': 70,
-        '新型航空兵装資材': 77,
-    }
-
-    json_obj = json.loads(requests.get(ITEM_DATA_URL).content)
+    json_obj = json.loads(requests.get(START2_DATA_URL).content)
 
     @classmethod
-    def get_icon_id(cls, equip_id: str | int, default_val: str | int | None = 0):
+    def get_slotitem_type_id(cls, equip_id: str | int, default_val: str | int | None = 0):
         if equip_id == 0:
             return 0
 
-        if type(equip_id) is int:
-            equip_id = str(equip_id)
+        if type(equip_id) is str:
+            equip_id = int(equip_id)
 
-        equip_id = equip_id.rjust(3, '0')
+        target_equip = next((x for x in cls.json_obj['api_mst_slotitem'] if x["api_id"] == equip_id), None)
 
-        if equip_id not in cls.json_obj:
+        if not target_equip:
             Printf(f'[Warning] Equip id {equip_id} not in json_obj, length: {len(cls.json_obj)}', color_str='35m')
             return default_val
 
-        return cls.json_obj[equip_id]['类别'][2]
+        return target_equip['api_type'][cls.ICON_ID_INDEX]
 
     @classmethod
-    def get_icon_id_by_typename(cls, typename: str, equip_id: str = '', default_val=0):
-        if typename in cls.EQUIP_ICON_ID:
-            return cls.EQUIP_ICON_ID[typename]
+    def get_slotitem_type_id_by_typename(cls, typename: str, equip_id: str = ''):
+        for equip_type in cls.json_obj.get('api_mst_slotitem_equiptype', []):
+            if equip_type['api_name'] == typename:
+                return equip_type['api_id']
+            
+        for useitem in cls.json_obj.get('api_mst_useitem', []):
+            if useitem['api_name'] == typename:
+                return useitem['api_id']
+            
+        # for slotitem in cls.json_obj.get('api_mst_slotitem', []):
+        #     if slotitem['api_name'] == typename:
+        #         return slotitem['api_id']
 
         if equip_id:
-            icon_id = cls.get_icon_id(equip_id, None)
+            icon_id = cls.get_slotitem_type_id(equip_id, None)
             if icon_id is not None:
                 return icon_id
 
@@ -93,30 +88,47 @@ class ItemDataHelper:
         # traceback.print_stack()
         # return default_val
 
+    @classmethod
+    def get_ship_id_by_name(cls, ship_name: str) -> int:
+        for ship_info in cls.json_obj['api_mst_ship']:
+            if ship_info['api_name'] == ship_name:
+                return ship_info['api_id']
+        
+        return -1
+    
+    @classmethod
+    def get_ship_name_by_id(cls, ship_id: int) -> str:
+        for ship_info in cls.json_obj['api_mst_ship']:
+            if ship_info['api_id'] == ship_id:
+                return ship_info['api_name']
+        
+        return ''
 
+    @classmethod
+    def dump_start2_json(cls):
+        with open(cls.START2_FILENAME, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(cls.json_obj, ensure_ascii=False, separators=(',', ':')))
+
+
+# 虽然有Start2了但是仍旧用这个存取name_cache以保证一些奇怪的名字可以hold住(比如"日本艦")
 class ShipInfoCache:
     name_cache = {}  # {ship_name: ship_id}
-    id_cache = {}  # {ship_id: ship_name}
 
     @classmethod
     def get_id(cls, ship_name: str, default_val=None):
-        if ship_name not in cls.name_cache:
-            return default_val
-        return cls.name_cache[ship_name]
+        if ship_name in cls.name_cache:
+            return cls.name_cache[ship_name]
+        
+        if ship_start2_id := Start2DataHelper.get_ship_id_by_name(ship_name):
+            return ship_start2_id
 
-    @classmethod
-    def get_name(cls, ship_id, default_val=''):
-        if ship_id == 0:
-            return '-'
-
-        if ship_id not in cls.id_cache:
-            return default_val
-        return cls.id_cache[ship_id]
+        Printf(f'[Warning] Ship name {ship_name} not in name_cache, length: {len(cls.name_cache)}', color_str='35m')
+        return default_val
 
     @classmethod
     def set_id(cls, ship_name: str, ship_id: int):
+        # Printf(f'Debug: Set {ship_name} ==> {ship_id}', color_str='90m')
         cls.name_cache[ship_name] = ship_id
-        cls.id_cache[ship_id] = ship_name
 
     @classmethod
     def set_id_by_img_url(cls, ship_name: str, url: str):
