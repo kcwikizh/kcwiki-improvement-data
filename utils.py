@@ -18,6 +18,9 @@ class ImprovementCache:
 
     @classmethod
     def set_cache(cls, equip_id, equip_info):
+        # 不再存储无改修的装备ID
+        if not equip_info:
+            return
         cls.json_obj[equip_id] = equip_info
         cls.save_file()
 
